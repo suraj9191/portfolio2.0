@@ -1,0 +1,32 @@
+
+### POWERSHELL SCRIPT ######
+
+
+$url = "https://sanket-bhalerao.netlify.app"
+$destination = "D:\VScode\img"
+
+Write-Output "Creating destination directory if it doesn't exist..."
+mkdir -Path $destination -ErrorAction SilentlyContinue
+
+Write-Output "Fetching HTML content from the webpage..."
+$response = Invoke-WebRequest -Uri $url
+$html = $response.Content
+
+Write-Output "Parsing HTML content for image links..."
+$imgTags = [regex]::Matches($html, '<img[^>]+src="([^">]+)"')
+
+Write-Output "Found $($imgTags.Count) image links. Downloading files..."
+foreach ($imgTag in $imgTags) {
+    $relativeUrl = $imgTag.Groups[1].Value
+    $absoluteUrl = [System.Uri]::new($response.BaseResponse.ResponseUri, $relativeUrl).AbsoluteUri
+    $filename = [System.IO.Path]::GetFileName($relativeUrl)
+    Write-Output "Downloading $filename from $absoluteUrl..."
+    try {
+        Invoke-WebRequest -Uri $absoluteUrl -OutFile (Join-Path -Path $destination -ChildPath $filename)
+        Write-Output "$filename downloaded successfully."
+    } catch {
+        Write-Output "Failed to download $filename. Error: $_"
+    }
+}
+
+Write-Output "Download complete!"
